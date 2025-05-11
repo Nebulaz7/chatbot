@@ -3,13 +3,33 @@ import { ChatMessage } from './components/ChatMessage';
 import { ChatInput } from './components/ChatInput';
 import { MessageCircle } from 'lucide-react';
 
+// Add TypeScript declaration for Vite's import.meta.env
+declare global {
+  interface ImportMeta {
+    env: {
+      VITE_GEMINI_API_KEY?: string;
+      [key: string]: any;
+    }
+  }
+}
+
+// Define types for conversation history
 interface Message {
   text: string;
   isBot: boolean;
 }
 
+// Interface for Gemini API conversation format
+interface GeminiMessage {
+  role: 'user' | 'model';
+  parts: {
+    text: string;
+  }[];
+}
+
 function App() {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [conversationHistory, setConversationHistory] = useState<GeminiMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -28,6 +48,15 @@ function App() {
       setIsLoading(true);
       setMessages(prev => [...prev, { text: message, isBot: false }]);
 
+      // Add user message to conversation history
+      const userMessage: GeminiMessage = {
+        role: 'user',
+        parts: [{ text: message }]
+      };
+      
+      // Create a copy of the current history with the new user message
+      const updatedHistory = [...conversationHistory, userMessage];
+
       // Get API key from Vite environment variables
       const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
       
@@ -43,15 +72,7 @@ function App() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  {
-                    text: message
-                  }
-                ]
-              }
-            ]
+            contents: updatedHistory
           })
         }
       );
@@ -63,9 +84,19 @@ function App() {
       const data = await response.json();
       const text = data.candidates[0].content.parts[0].text;
 
+      // Add model response to conversation history
+      const modelResponse: GeminiMessage = {
+        role: 'model',
+        parts: [{ text }]
+      };
+
+      // Update conversation history with the model's response
+      setConversationHistory([...updatedHistory, modelResponse]);
+      
+      // Update UI messages
       setMessages(prev => [...prev, { text, isBot: true }]);
     } catch (err) {
-      setError('Failed to get response from Gemini AI. Please try again.');
+      setError('Failed to get response from Neb AI. Please try again.');
       console.error('Error:', err);
     } finally {
       setIsLoading(false);
