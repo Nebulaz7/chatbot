@@ -18,7 +18,7 @@ interface Message {
   text: string;
   isBot: boolean;
 }
-
+  
 // Interface for Gemini API conversation format
 interface GeminiMessage {
   role: 'user' | 'model';
@@ -42,7 +42,7 @@ About the creator:
 - They are interested in coding, gaming, and music
 - He's a frontend developer learning new Technologies and building new projects, he is a student of Computer Science at the Federal University of Agriculture Abeokuta (FUNAAB).
 - His github link is https://github.com/nebulaz7
-- His twitter handle is @nebulaz7
+- His X (Twitter) handle is https://x.com/joshpet77
 - His portfolio website is https://nebulaz7.github.io/
 - Always add about the creator and the contacts when you are asked about the creator and about who created you.
 
@@ -57,7 +57,9 @@ Remember to:
 - Format code snippets with proper syntax highlighting using markdown
 - Use bullet points or numbered lists for steps or multiple items
 - Use bold text to highlight important points
-- Be respectful and professional at all times`;
+- Be respectful and professional at all times
+- Remember don't always talk about the creator unless directly asked about the creator.
+`;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
