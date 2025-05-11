@@ -21,7 +21,7 @@ interface Message {
 
 // Interface for Gemini API conversation format
 interface GeminiMessage {
-  role: 'user' | 'model' | 'system';
+  role: 'user' | 'model';
   parts: {
     text: string;
   }[];
@@ -29,22 +29,19 @@ interface GeminiMessage {
 
 function App() {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [conversationHistory, setConversationHistory] = useState<GeminiMessage[]>(() => {
-    // Initialize with system configuration message
-    return [
-      {
-        role: 'system',
-        parts: [{ 
-          text: `You are Neb AI, a helpful and friendly AI assistant. You where created by Peters Joshua.
+  const [conversationHistory, setConversationHistory] = useState<GeminiMessage[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Store system instructions for the AI
+  const systemInstructions = `You are Neb AI, a helpful and friendly AI assistant. 
           
-About the creator:
-- The creator's name is Peters Joshua
-- They are interested in coding, gaming, and music
-- He's a frontend developer learning new Technologies and building new projects, he is a student of Computer Science at the Federal University of Agriculture Abeokuta (FUNAAB).
-- His github link is https://github.com/nebulaz7
-- His twitter handle is @nebulaz7
-- His portfolio website is https://nebulaz7.github.io/
-- Always add about the creator and the contacts when you are asked about the creator and about who created you.
+About the User:
+- The user's name is [User's Name]
+- They are interested in [User's Interests]
+- They prefer responses that are concise but informative
+- They appreciate when you format your responses with Markdown for better readability
 
 Your Persona:
 - You are knowledgeable but humble
@@ -57,14 +54,7 @@ Remember to:
 - Format code snippets with proper syntax highlighting using markdown
 - Use bullet points or numbered lists for steps or multiple items
 - Use bold text to highlight important points
-- Be respectful and professional at all times`
-        }]
-      }
-    ];
-  });
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+- Be respectful and professional at all times`;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -96,6 +86,29 @@ Remember to:
         throw new Error('API key is not set. Please add VITE_GEMINI_API_KEY to your .env file');
       }
 
+      // Prepare the request body
+      // For the first message, include system instructions in the user's first message
+      let requestBody;
+      
+      if (conversationHistory.length === 0) {
+        // First message - include system instructions in the user's message
+        requestBody = {
+          contents: [
+            {
+              role: 'user',
+              parts: [{ 
+                text: `${systemInstructions}\n\nUser message: ${message}` 
+              }]
+            }
+          ]
+        };
+      } else {
+        // Normal message flow
+        requestBody = {
+          contents: updatedHistory
+        };
+      }
+
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`,
         {
@@ -103,18 +116,20 @@ Remember to:
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            contents: updatedHistory
-          })
+          body: JSON.stringify(requestBody)
         }
       );
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error Response:', errorText);
         throw new Error(`API request failed with status ${response.status}`);
       }
 
       const data = await response.json();
-      const text = data.candidates[0].content.parts[0].text;
+      const text = data.candidates && data.candidates[0]?.content?.parts?.[0]?.text 
+        ? data.candidates[0].content.parts[0].text
+        : "Sorry, I couldn't generate a response.";
 
       // Add model response to conversation history
       const modelResponse: GeminiMessage = {
@@ -127,12 +142,17 @@ Remember to:
       
       // Update UI messages
       setMessages(prev => [...prev, { text, isBot: true }]);
-    } catch (err) {
-      setError('Failed to get response from Neb AI. Please try again.');
+    } catch (err: any) {
+      setError(`Failed to get response: ${err.message}`);
       console.error('Error:', err);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const clearChat = () => {
+    setMessages([]);
+    setConversationHistory([]);
   };
 
   return (
@@ -145,6 +165,14 @@ Remember to:
             <h1 className="text-3xl font-bold text-gray-900">Neb AI Chat</h1>
           </div>
           <p className="text-gray-600">Have a conversation with Neb AI</p>
+          {messages.length > 0 && (
+            <button 
+              onClick={clearChat}
+              className="mt-2 px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm text-gray-700 transition-colors"
+            >
+              Clear Chat
+            </button>
+          )}
         </div>
 
         {/* Chat Container */}
