@@ -1,5 +1,8 @@
 import React from 'react';
 import { Bot, User } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import rehypeSanitize from 'rehype-sanitize';
+import remarkGfm from 'remark-gfm';
 
 interface ChatMessageProps {
   message: string;
@@ -14,7 +17,19 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isBot }) => {
       </div>
       <div className="flex-1">
         <p className="text-sm font-medium mb-1">{isBot ? 'Neb AI' : 'You'}</p>
-        <p className="text-gray-700 whitespace-pre-wrap">{message}</p>
+        {isBot ? (
+          <div className="markdown text-gray-700">
+            <ReactMarkdown 
+              rehypePlugins={[rehypeSanitize]} 
+              remarkPlugins={[remarkGfm]}
+              className="prose prose-sm max-w-none"
+            >
+              {message}
+            </ReactMarkdown>
+          </div>
+        ) : (
+          <p className="text-gray-700 whitespace-pre-wrap">{message}</p>
+        )}
       </div>
     </div>
   );
