@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ChatMessage } from './components/ChatMessage';
 import { ChatInput } from './components/ChatInput';
 import { MessageCircle } from 'lucide-react';
@@ -29,13 +28,40 @@ function App() {
       setIsLoading(true);
       setMessages(prev => [...prev, { text: message, isBot: false }]);
 
-      // Replace with your API key
-      const genAI = new GoogleGenerativeAI('YOUR_API_KEY');
-      const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+      // Get API key from Vite environment variables
+      const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
+      
+      if (!API_KEY) {
+        throw new Error('API key is not set. Please add VITE_GEMINI_API_KEY to your .env file');
+      }
 
-      const result = await model.generateContent(message);
-      const response = await result.response;
-      const text = response.text();
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text: message
+                  }
+                ]
+              }
+            ]
+          })
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      const text = data.candidates[0].content.parts[0].text;
 
       setMessages(prev => [...prev, { text, isBot: true }]);
     } catch (err) {
