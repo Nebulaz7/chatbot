@@ -90,27 +90,45 @@ Remember to:
       }
 
       // Prepare the request body
-      // For the first message, include system instructions in the user's first message
       let requestBody;
       
       if (conversationHistory.length === 0) {
-        // First message - include system instructions in the user's message
+        // For the first message, we'll inject our system instructions into the user's message
         requestBody = {
           contents: [
             {
               role: 'user',
               parts: [{ 
-                text: `${systemInstructions}\n\nUser message: ${message}` 
+                text: `${systemInstructions}\n\nUser's question: ${message}\n\nPlease respond to the user's question. Remember to follow the instructions above.` 
               }]
             }
           ]
         };
       } else {
-        // Normal message flow
+        // For regular conversation, include a reminder about the bot's identity
+        // but don't include the full instructions to avoid context size issues
+        const historyWithContext = [
+          // First add a reminder message that won't be displayed to the user
+          {
+            role: 'user', 
+            parts: [{ 
+              text: 'Remember: You are Neb AI, created by Peters Joshua. Format your responses with markdown when appropriate.' 
+            }]
+          },
+          {
+            role: 'model',
+            parts: [{ text: 'I understand. I will continue as Neb AI, created by Peters Joshua, and will use markdown formatting appropriately.' }]
+          },
+          // Then add the actual conversation history
+          ...updatedHistory
+        ];
+        
         requestBody = {
-          contents: updatedHistory
+          contents: historyWithContext
         };
       }
+
+      console.log('Sending request to Gemini API:', JSON.stringify(requestBody, null, 2));
 
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`,
