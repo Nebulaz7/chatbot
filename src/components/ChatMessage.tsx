@@ -13,7 +13,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, isBot }) => {
         {isBot ? <Bot size={20} /> : <User size={20} />}
       </div>
       <div className="flex-1">
-        <p className="text-sm font-medium mb-1">{isBot ? 'Gemini AI' : 'You'}</p>
+        <p className="text-sm font-medium mb-1">{isBot ? 'Neb AI' : 'You'}</p>
         <p className="text-gray-700 whitespace-pre-wrap">{message}</p>
       </div>
     </div>
