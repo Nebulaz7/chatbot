@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChatMessage } from './components/ChatMessage';
 import { ChatInput } from './components/ChatInput';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, Sun, Moon } from 'lucide-react';
 
 // Add TypeScript declaration for Vite's import.meta.env
 declare global {
@@ -32,6 +32,15 @@ function App() {
   const [conversationHistory, setConversationHistory] = useState<GeminiMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [darkMode, setDarkMode] = useState(() => {
+    // Check if user has a preference stored in localStorage
+    const savedPreference = localStorage.getItem('darkMode');
+    if (savedPreference !== null) {
+      return savedPreference === 'true';
+    }
+    // Otherwise check system preference
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Store system instructions for the AI
@@ -60,6 +69,17 @@ Remember to:
 - Be respectful and professional at all times
 - Remember don't always talk about the creator unless directly asked about the creator.
 `;
+
+  // Apply dark mode class to body
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    // Save preference to localStorage
+    localStorage.setItem('darkMode', darkMode.toString());
+  }, [darkMode]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -178,20 +198,35 @@ Remember to:
     setConversationHistory([]);
   };
 
+  const toggleDarkMode = () => {
+    setDarkMode(prev => !prev);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={`min-h-screen transition-colors duration-200 ${darkMode ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
       <div className="max-w-4xl mx-auto p-4 flex flex-col h-screen">
         {/* Header */}
-        <div className="text-center mb-8 pt-8">
+        <div className="text-center mb-4 md:mb-8 pt-4 md:pt-8 flex flex-col items-center">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <MessageCircle className="w-8 h-8 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900">Neb AI Chat</h1>
+            <MessageCircle className={`w-6 h-6 md:w-8 md:h-8 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+            <h1 className={`text-2xl md:text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Neb AI Chat</h1>
+            <button 
+              onClick={toggleDarkMode} 
+              className={`p-2 rounded-full ${darkMode ? 'bg-gray-800 text-yellow-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
           </div>
-          <p className="text-gray-600">Have a conversation with Neb AI</p>
+          <p className={`text-sm md:text-base ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Have a conversation with Neb AI</p>
           {messages.length > 0 && (
             <button 
               onClick={clearChat}
-              className="mt-2 px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm text-gray-700 transition-colors"
+              className={`mt-2 px-3 py-1 text-xs md:text-sm rounded transition-colors ${
+                darkMode 
+                  ? 'bg-gray-700 hover:bg-gray-600 text-gray-200' 
+                  : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+              }`}
             >
               Clear Chat
             </button>
@@ -199,24 +234,24 @@ Remember to:
         </div>
 
         {/* Chat Container */}
-        <div className="flex-1 bg-white rounded-lg shadow-lg flex flex-col">
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className={`flex-1 rounded-lg shadow-lg flex flex-col ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+          <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4">
             {messages.length === 0 && (
-              <div className="text-center text-gray-500 mt-8">
+              <div className={`text-center mt-8 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 <p>👋 Send a message to start chatting with Neb AI</p>
               </div>
             )}
             {messages.map((msg, index) => (
-              <ChatMessage key={index} message={msg.text} isBot={msg.isBot} />
+              <ChatMessage key={index} message={msg.text} isBot={msg.isBot} darkMode={darkMode} />
             ))}
             {isLoading && (
-              <div className="flex items-center justify-center gap-2 text-gray-500">
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
+              <div className={`flex items-center justify-center gap-2 ${darkMode ? 'text-gray-300' : 'text-gray-500'}`}>
+                <div className={`animate-spin rounded-full h-4 w-4 border-2 border-t-transparent ${darkMode ? 'border-blue-400' : 'border-blue-500'}`}></div>
                 Thinking...
               </div>
             )}
             {error && (
-              <div className="text-red-500 text-center p-2 bg-red-50 rounded-lg">
+              <div className={`text-red-500 text-center p-2 rounded-lg ${darkMode ? 'bg-red-900/20' : 'bg-red-50'}`}>
                 {error}
               </div>
             )}
@@ -224,8 +259,8 @@ Remember to:
           </div>
 
           {/* Input Area */}
-          <div className="border-t p-4">
-            <ChatInput onSendMessage={handleSendMessage} disabled={isLoading} />
+          <div className={`border-t p-3 md:p-4 ${darkMode ? 'border-gray-700' : ''}`}>
+            <ChatInput onSendMessage={handleSendMessage} disabled={isLoading} darkMode={darkMode} />
           </div>
         </div>
       </div>
